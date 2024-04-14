@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>    
+     <!-- Required meta tags -->
+    <meta charset="utf-8"><!-- 網頁編碼 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>瑕疵檢測</title> 
+    <!--<style>
+    table, td{
+      border:1px solid black;
+      font-size:14px;
+    }
+    body {
+  background-color: lightblue;
+    }
+    </style>-->   
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.22.4/dist/bootstrap-table.min.css">
+  </head>
+  
+  <body>
+  <div class="container">
+  <h3>PCB瑕疵檢測結果</h3>
+  <br>
+  <h3>請選擇PCB瑕疵種類</h3>
+  <br>
+  <table class="table" id="table_sum"></table>
+  <br>
+  <select id="group_1" onchange="changeCollege(this.selectedIndex)"></select>
+  <br>
+  <br>
+  <button class="table_button" id="show_table">顯示瑕疵品</button>
+  <br>
+  <br>
+  <h3 id="message_1"></h3>
+  <br>
+  <table class="table" id="table"></table>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/jquery/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/bootstrap-table@1.22.4/dist/bootstrap-table.min.js"></script>
+  </body>
+</html>
+
+<script>
+//Dropdown menu object
+let defect_group = ['None', 'Missing_hole', 'Mouse_bite', 'Open_circuit', 'Short', 'Spur', 'Spurious_copper'];
+let group_select = document.getElementById('group_1');
+let inner="";
+for(var i=0; i<defect_group.length;i++){
+  inner = inner+'<option value=i>'+defect_group[i]+'</option>';
+}
+group_select.innerHTML=inner;
+
+//Button object
+let table_button = document.getElementById('show_table');
+
+//Message object
+let message_1 = document.getElementById('message_1');
+//Table object
+const table_1 = document.getElementById('table');
+const table_sum = document.getElementById('table_sum');
+
+
+
+//Show table button function
+table_button.addEventListener('click', function(){
+    table_1.innerHTML = '';
+    var group_name = document.querySelector('#group_1');
+    var defect_1 = group_name.options[group_name.selectedIndex].text;
+    if (defect_1 == 'None'){
+        alert('請選擇異常型態');
+    }else{
+        message_1.innerText = '正在查詢中';
+        google.script.run.withSuccessHandler(show_table_func).show_defect(defect_1);
+        google.script.run.withSuccessHandler(defect_sum_func).show_sum();
+    }
+
+})
+
+function show_table_func(defect_result){
+  if(defect_result==-1){
+    message_1.innerText = '沒有此類型瑕疵品';
+  }else{
+    console.log(defect_result)
+    message_1.innerText = '';
+    var name_array = ['Type of defect','File name', 'Photo','Lot number','Contact window','Phone number'];
+    var defect_array = [];
+    //Merge colume name and data to an array
+    defect_array.push(name_array); 
+    for(var i=0; i<defect_result.length; i++){
+      defect_array.push(defect_result[i])
+    }
+    //Transfer array to table
+    add_defect_row(defect_array);  
+  }
+}
+
+//Sum of defection function
+function defect_sum_func(defect_sum_object){
+  table_sum.innerText = '';
+  var name_array = ['Type of defect', 'Frequency'];
+  var sum_array = Object.entries(defect_sum_object);
+  console.log(sum_array)
+  var defect_sum_array = [];
+  defect_sum_array.push(name_array);
+  for(const defect_frequency of sum_array){
+    defect_sum_array.push(defect_frequency[1])
+  }
+  for(var i=0; i<defect_sum_array.length; i++){
+    if(i==0){
+      var thead = document.createElement('thead');      
+      const row = document.createElement('tr');
+      for (const obj of defect_sum_array[i]) {
+        const col = document.createElement('td');
+        col.textContent = obj;
+        row.appendChild(col);
+      } 
+      thead.appendChild(row);
+      table_sum.appendChild(thead);
+    }else{
+      if(i==1){
+        var tbody = document.createElement('tbody');
+      }      
+      const row = document.createElement('tr');
+      for (const obj of defect_sum_array[i]) {
+        const col = document.createElement('td');
+        col.textContent = obj;
+        row.appendChild(col);
+      } 
+      tbody.appendChild(row);            
+    }  
+  }
+  table_sum.appendChild(tbody);
+}
+
+//Add defect row function
+function add_defect_row(table_array) {
+    for(var i=0; i<table_array.length; i++){
+      if(i==0){ //Add column name to table
+        const header=  document.createElement('thead');
+        const row = document.createElement('tr');
+        for (const obj of table_array[i]) {
+          const col = document.createElement('td');
+          col.textContent = obj;
+          row.appendChild(col);      
+        }
+        header.appendChild(row);
+        table_1.appendChild(header)        
+      }else{ //Add class, file name, picture,lot number, contact window, phone number
+        if(i==1){
+          var tbody = document.createElement('tbody');
+        }
+        const row = document.createElement('tr');
+        for(var j=0;j<table_array[i].length;j++){
+          if(j<=1){
+            const col = document.createElement('td');
+            col.textContent = table_array[i][j];
+            row.appendChild(col);
+          }else if(j==2){
+            var certisfication_element = document.createElement('td');
+            var ifrm = document.createElement("iframe");
+            ifrm.setAttribute("src", 'https://drive.google.com/file/d/'+table_array[i][2]+'/preview');
+            ifrm.style.width = "320px";
+            ifrm.style.height = "240px";
+            ifrm.allow = 'autoplay';
+            row.appendChild(ifrm);
+          }else if(j==3){
+            continue;
+          }else{
+            const col = document.createElement('td');
+            col.textContent = table_array[i][j];
+            row.appendChild(col);
+          }          
+        } 
+        tbody.appendChild(row);       
+      }
+    }
+    table_1.appendChild(tbody);
+}
+
+</script>
